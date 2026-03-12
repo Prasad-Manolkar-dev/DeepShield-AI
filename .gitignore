@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Dataset (too large for GitHub)
+dataset/
+
+# Trained models
+*.pth
+
+# Environment files
+.env
+
+# Jupyter checkpoints
+.ipynb_checkpoints/

@@ -176,25 +176,25 @@ notebooks/
 
 
 
-Day 1 – Project setup and environment configuration
+Project setup and environment configuration
 
-Day 2 – Dataset preparation
+Dataset preparation
 
-Day 3 – Video frame extraction
+Video frame extraction
 
-Day 4 – Face detection and cropping
+Face detection and cropping
 
-Day 5 – CNN feature extraction
+CNN feature extraction
 
-Day 6 – LSTM temporal modeling
+LSTM temporal modeling
 
-Day 7 – Model training
+Model training
 
-Day 8 – Model evaluation
+Model evaluation
 
-Day 9 – Backend API development
+Backend API development
 
-Day 10 – Frontend interface
+Frontend interface
 
 
 

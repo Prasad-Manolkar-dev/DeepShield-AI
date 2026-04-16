@@ -212,5 +212,5 @@ Prasad Manolkar
 
 This project is being developed as part of a machine learning portfolio to demonstrate skills in deep learning, computer vision, and full-stack AI system development.
 
-
+Day 8 Progress: Implemented image-based deepfake classifier and video prediction pipeline.
 

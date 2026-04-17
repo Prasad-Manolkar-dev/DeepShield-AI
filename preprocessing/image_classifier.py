@@ -206,3 +206,6 @@ with torch.no_grad():
 accuracy = (correct / total) * 100
 
 print(f"Validation Accuracy: {accuracy:.2f}%")
+
+torch.save(model.state_dict(), "model.pth")
+print(" Model saved")

@@ -1,3 +1,4 @@
+from torchvision import transforms
 import os
 import cv2
 import numpy as np
@@ -6,7 +7,7 @@ import torch.nn as nn
 from torchvision import models
 from torch.utils.data import TensorDataset, DataLoader
 
-print("🚀 SCRIPT STARTED")
+print(" SCRIPT STARTED")
 
 # ==============================
 # PATHS
@@ -83,9 +84,20 @@ data = data.permute(0, 3, 1, 2)
 print("Tensor data shape:", data.shape)
 print("Tensor labels shape:", labels.shape)
 
+from sklearn.model_selection import train_test_split
+
+X_train, X_val, y_train, y_val = train_test_split(
+    data, labels, test_size=0.2, random_state=42
+)
+
+print("Train shape:", X_train.shape)
+print("Validation shape:", X_val.shape)
 # ==============================
 # MODEL (ResNet + Classifier)
 # ==============================
+
+import torch.nn as nn
+from torchvision import models
 
 resnet = models.resnet18(pretrained=True)
 resnet = nn.Sequential(*list(resnet.children())[:-1])
@@ -94,27 +106,47 @@ class DeepFakeModel(nn.Module):
     def __init__(self):
         super(DeepFakeModel, self).__init__()
 
+        # Feature extractor
         self.feature_extractor = resnet
+
+        # Freeze all layers
+        for param in self.feature_extractor.parameters():
+            param.requires_grad = False
+
+        # Unfreeze last layer
+        for param in list(self.feature_extractor.children())[-1].parameters():
+            param.requires_grad = True
+
+        # Dropout + Classifier
+        self.dropout = nn.Dropout(0.5)
         self.fc = nn.Linear(512, 1)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.feature_extractor(x)
         x = x.view(x.size(0), -1)
+
+        x = self.dropout(x)
         x = self.fc(x)
         x = self.sigmoid(x)
+
         return x
+
 
 model = DeepFakeModel()
 
-print("✅ Model ready")
-
+print("Model ready")
 # ==============================
-# DATALOADER (IMPORTANT)
+# DATA LOADERS (CORRECT SPLIT)
 # ==============================
 
-dataset = TensorDataset(data, labels)
-loader = DataLoader(dataset, batch_size=32, shuffle=True)
+from torch.utils.data import TensorDataset, DataLoader
+
+train_dataset = TensorDataset(X_train, y_train)
+val_dataset = TensorDataset(X_val, y_val)
+
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
 # ==============================
 # LOSS + OPTIMIZER
@@ -124,18 +156,18 @@ criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # ==============================
-# TRAINING LOOP
+# TRAINING LOOP (CORRECT)
 # ==============================
 
-epochs = 5
+epochs = 10
 
-print("🚀 Training started...")
+print(" Training started...")
 
 for epoch in range(epochs):
 
     total_loss = 0
 
-    for batch_data, batch_labels in loader:
+    for batch_data, batch_labels in train_loader:
 
         batch_labels = batch_labels.unsqueeze(1)
 
@@ -151,20 +183,16 @@ for epoch in range(epochs):
 
         total_loss += loss.item()
 
-    print(f"Epoch {epoch+1}/{epochs} | Loss: {total_loss:.4f}")
-
-print("✅ Training completed")
-
+    print(f"Epoch {epoch+1}/{epochs} | Train Loss: {total_loss:.4f}")
 # ==============================
-# EVALUATION
+# VALIDATION (REAL ACCURACY)
 # ==============================
-
 correct = 0
 total = 0
 
 with torch.no_grad():
 
-    for batch_data, batch_labels in loader:
+    for batch_data, batch_labels in val_loader:
 
         batch_labels = batch_labels.unsqueeze(1)
 
@@ -177,4 +205,4 @@ with torch.no_grad():
 
 accuracy = (correct / total) * 100
 
-print(f"✅ Accuracy: {accuracy:.2f}%")
+print(f"Validation Accuracy: {accuracy:.2f}%")

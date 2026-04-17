@@ -118,7 +118,7 @@ class DeepFakeModel(nn.Module):
             param.requires_grad = True
 
         # Dropout + Classifier
-        self.dropout = nn.Dropout(0.5)
+       
         self.fc = nn.Linear(512, 1)
         self.sigmoid = nn.Sigmoid()
 
@@ -126,7 +126,7 @@ class DeepFakeModel(nn.Module):
         x = self.feature_extractor(x)
         x = x.view(x.size(0), -1)
 
-        x = self.dropout(x)
+        
         x = self.fc(x)
         x = self.sigmoid(x)
 
@@ -159,7 +159,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 # TRAINING LOOP (CORRECT)
 # ==============================
 
-epochs = 10
+epochs = 15
 
 print(" Training started...")
 

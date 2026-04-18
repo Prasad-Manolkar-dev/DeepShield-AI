@@ -1,211 +1,102 @@
-from torchvision import transforms
-import os
-import cv2
-import numpy as np
 import torch
 import torch.nn as nn
-from torchvision import models
-from torch.utils.data import TensorDataset, DataLoader
-
-print(" SCRIPT STARTED")
-
-# ==============================
-# PATHS
-# ==============================
-
-real_path = r"C:\Users\Prasad\Desktop\DeepShield-AI\dataset\train\real"
-fake_path = r"C:\Users\Prasad\Desktop\DeepShield-AI\dataset\train\fake"
-
-data = []
-labels = []
+import torch.optim as optim
+from torchvision import models, transforms
+from torch.utils.data import DataLoader, Subset
+from torchvision.datasets import ImageFolder
 
 # ==============================
-# LOAD REAL IMAGES (label = 0)
+# PATH
 # ==============================
 
-print("Loading real images...")
-files = os.listdir(real_path)
-files = files[:1000]   # limit for performance
-
-for file in files:
-    path = os.path.join(real_path, file)
-
-    img = cv2.imread(path)
-
-    if img is None:
-        continue
-
-    img = cv2.resize(img, (224, 224))
-
-    data.append(img)
-    labels.append(0)
+train_path = "../dataset/Train"
 
 # ==============================
-# LOAD FAKE IMAGES (label = 1)
+# TRANSFORM
 # ==============================
 
-print("Loading fake images...")
-files = os.listdir(fake_path)
-files = files[:1000]
-
-for file in files:
-    path = os.path.join(fake_path, file)
-
-    img = cv2.imread(path)
-
-    if img is None:
-        continue
-
-    img = cv2.resize(img, (224, 224))
-
-    data.append(img)
-    labels.append(1)
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor()
+])
 
 # ==============================
-# NUMPY → TENSOR
+# DATASET
 # ==============================
 
-data = np.array(data)
-labels = np.array(labels)
+full_dataset = ImageFolder(train_path, transform=transform)
 
-print("Total images:", data.shape)
-print("Total labels:", labels.shape)
+print("Total images:", len(full_dataset))
+print("Classes:", full_dataset.classes)
 
-# Normalize
-data = data / 255.0
+# 🔥 LIMIT DATA (VERY IMPORTANT)
+import random
+random.seed(42)
 
-# Convert to tensor
-data = torch.tensor(data, dtype=torch.float32)
-labels = torch.tensor(labels, dtype=torch.float32)
+subset_size = 8000
+subset_indices = random.sample(range(len(full_dataset)), subset_size)
 
-# Change shape (HWC → CHW)
-data = data.permute(0, 3, 1, 2)
+dataset = Subset(full_dataset, subset_indices)
 
-print("Tensor data shape:", data.shape)
-print("Tensor labels shape:", labels.shape)
+# ==============================
+# DATALOADER
+# ==============================
 
-from sklearn.model_selection import train_test_split
+loader = DataLoader(dataset, batch_size=16, shuffle=True)
 
-X_train, X_val, y_train, y_val = train_test_split(
-    data, labels, test_size=0.2, random_state=42
+# ==============================
+# MODEL
+# ==============================
+
+model = models.resnet18(pretrained=True)
+
+model.fc = nn.Sequential(
+    nn.Linear(512, 1),
+    nn.Sigmoid()
 )
 
-print("Train shape:", X_train.shape)
-print("Validation shape:", X_val.shape)
 # ==============================
-# MODEL (ResNet + Classifier)
-# ==============================
-
-import torch.nn as nn
-from torchvision import models
-
-resnet = models.resnet18(pretrained=True)
-resnet = nn.Sequential(*list(resnet.children())[:-1])
-
-class DeepFakeModel(nn.Module):
-    def __init__(self):
-        super(DeepFakeModel, self).__init__()
-
-        # Feature extractor
-        self.feature_extractor = resnet
-
-        # Freeze all layers
-        for param in self.feature_extractor.parameters():
-            param.requires_grad = False
-
-        # Unfreeze last layer
-        for param in list(self.feature_extractor.children())[-1].parameters():
-            param.requires_grad = True
-
-        # Dropout + Classifier
-       
-        self.fc = nn.Linear(512, 1)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        x = self.feature_extractor(x)
-        x = x.view(x.size(0), -1)
-
-        
-        x = self.fc(x)
-        x = self.sigmoid(x)
-
-        return x
-
-
-model = DeepFakeModel()
-
-print("Model ready")
-# ==============================
-# DATA LOADERS (CORRECT SPLIT)
-# ==============================
-
-from torch.utils.data import TensorDataset, DataLoader
-
-train_dataset = TensorDataset(X_train, y_train)
-val_dataset = TensorDataset(X_val, y_val)
-
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-
-# ==============================
-# LOSS + OPTIMIZER
+# TRAINING SETUP
 # ==============================
 
 criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 # ==============================
-# TRAINING LOOP (CORRECT)
+# TRAINING LOOP
 # ==============================
 
-epochs = 15
-
-print(" Training started...")
+epochs = 5
 
 for epoch in range(epochs):
-
     total_loss = 0
 
-    for batch_data, batch_labels in train_loader:
+    for i, (images, labels) in enumerate(loader):
 
-        batch_labels = batch_labels.unsqueeze(1)
+        # fix label shape
+        labels = labels.float().unsqueeze(1)
+
+        # progress print
+        if i % 10 == 0:
+            print(f"Epoch {epoch+1} | Batch {i}/{len(loader)}")
 
         optimizer.zero_grad()
 
-        outputs = model(batch_data)
+        outputs = model(images)
 
-        loss = criterion(outputs, batch_labels)
+        loss = criterion(outputs, labels)
 
         loss.backward()
-
         optimizer.step()
 
         total_loss += loss.item()
 
-    print(f"Epoch {epoch+1}/{epochs} | Train Loss: {total_loss:.4f}")
+    print(f"Epoch {epoch+1}/{epochs} | Loss: {total_loss:.4f}")
+
 # ==============================
-# VALIDATION (REAL ACCURACY)
+# SAVE MODEL
 # ==============================
-correct = 0
-total = 0
 
-with torch.no_grad():
-
-    for batch_data, batch_labels in val_loader:
-
-        batch_labels = batch_labels.unsqueeze(1)
-
-        outputs = model(batch_data)
-
-        predicted = (outputs > 0.5).float()
-
-        correct += (predicted == batch_labels).sum().item()
-        total += batch_labels.size(0)
-
-accuracy = (correct / total) * 100
-
-print(f"Validation Accuracy: {accuracy:.2f}%")
-
-torch.save(model.state_dict(), "model.pth")
-print(" Model saved")
+torch.save(model.state_dict(), "../model.pth")
+print("✅ Model saved")

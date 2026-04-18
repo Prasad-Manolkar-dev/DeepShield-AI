@@ -4,75 +4,53 @@ import torch
 import numpy as np
 from torchvision import models, transforms
 
-# ==============================
-# LOAD MODEL
-# ==============================
+real_path = "../dataset/Train/real"
+fake_path = "../dataset/Train/fake"
 
-model = models.resnet18(pretrained=True)
-model = torch.nn.Sequential(*list(model.children())[:-1])
-model.eval()
-
-print("✅ ResNet loaded")
-
-# ==============================
-# PATHS
-# ==============================
-
-input_folder = r"C:\Users\Prasad\Desktop\DeepShield-AI\dataset\faces\sample_video"
-output_file = r"C:\Users\Prasad\Desktop\DeepShield-AI\dataset\features.npy"
-
-files = os.listdir(input_folder)
-
-print("Total face images:", len(files))
-
-# ==============================
-# TRANSFORM
-# ==============================
+resnet = models.resnet18(pretrained=True)
+resnet = torch.nn.Sequential(*list(resnet.children())[:-1])
+resnet.eval()
 
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((224, 224)),
-    transforms.ToTensor(),
+    transforms.ToTensor()
 ])
 
-# ==============================
-# FEATURE STORAGE
-# ==============================
+features = []
+labels = []
 
-all_features = []
+def process_folder(path, label):
+    files = os.listdir(path)[:1000]
 
-# ==============================
-# PROCESS ALL IMAGES
-# ==============================
+    for file in files:
+        img_path = os.path.join(path, file)
 
-for file in files:
-    path = os.path.join(input_folder, file)
+        img = cv2.imread(img_path)
+        if img is None:
+            continue
 
-    img = cv2.imread(path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = transform(img).unsqueeze(0)
 
-    if img is None:
-        continue
+        with torch.no_grad():
+            feature = resnet(img)
+            feature = feature.view(-1)
 
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = transform(img)
-    img = img.unsqueeze(0)
+        features.append(feature.numpy())
+        labels.append(label)
 
-    with torch.no_grad():
-        features = model(img)
+print("Processing REAL...")
+process_folder(real_path, 0)
 
-    features = features.view(-1).numpy()
+print("Processing FAKE...")
+process_folder(fake_path, 1)
 
-    all_features.append(features)
+features = np.array(features)
+labels = np.array(labels)
 
-print("Total features extracted:", len(all_features))
+np.save("../dataset/features.npy", features)
+np.save("../dataset/labels.npy", labels)
 
-# ==============================
-# SAVE FEATURES
-# ==============================
-
-all_features = np.array(all_features)
-
-np.save(output_file, all_features)
-
-print("✅ Features saved to file")
-print("Final shape:", all_features.shape)
+print("✅ Features:", features.shape)
+print("✅ Labels:", labels.shape)

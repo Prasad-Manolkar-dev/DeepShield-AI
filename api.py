@@ -9,7 +9,7 @@ import mediapipe as mp
 app = FastAPI()
 
 # ==============================
-# LOAD TRAINED MODEL (ResNet)
+# LOAD MODEL
 # ==============================
 
 model = models.resnet18(pretrained=False)
@@ -22,16 +22,18 @@ model.fc = nn.Sequential(
 model.load_state_dict(torch.load("model.pth", map_location=torch.device("cpu")))
 model.eval()
 
-print("✅ Trained ResNet model loaded")
+print("✅ Model loaded")
 
 # ==============================
-# TRANSFORM
+# TRANSFORM (IMPORTANT)
 # ==============================
 
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((224, 224)),
-    transforms.ToTensor()
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
 ])
 
 # ==============================
@@ -42,7 +44,7 @@ mp_face = mp.solutions.face_detection
 face_detector = mp_face.FaceDetection(model_selection=0, min_detection_confidence=0.5)
 
 # ==============================
-# VIDEO PREDICTION
+# PREDICTION API
 # ==============================
 
 @app.post("/predict/")
@@ -62,8 +64,8 @@ async def predict(file: UploadFile = File(...)):
     if total_frames <= 0:
         return {"error": "Invalid video"}
 
-    # sample 20 frames
-    frame_indices = set(np.linspace(0, total_frames - 1, 20, dtype=int))
+    # Increased frames
+    frame_indices = set(np.linspace(0, total_frames - 1, 30, dtype=int))
 
     current_frame = 0
 
@@ -84,7 +86,6 @@ async def predict(file: UploadFile = File(...)):
             for detection in results.detections:
 
                 bbox = detection.location_data.relative_bounding_box
-
                 h, w, _ = frame.shape
 
                 x1 = int(bbox.xmin * w)
@@ -92,7 +93,6 @@ async def predict(file: UploadFile = File(...)):
                 x2 = int((bbox.xmin + bbox.width) * w)
                 y2 = int((bbox.ymin + bbox.height) * h)
 
-                # clamp
                 x1, y1 = max(0, x1), max(0, y1)
                 x2, y2 = min(w, x2), min(h, y2)
 
@@ -106,7 +106,13 @@ async def predict(file: UploadFile = File(...)):
                 with torch.no_grad():
                     output = model(face)
 
-                predictions.append(output.item())
+                pred = output.item()
+
+                # Ignore weak predictions
+                if 0.4 < pred < 0.6:
+                    continue
+
+                predictions.append(pred)
 
         current_frame += 1
 
@@ -115,14 +121,11 @@ async def predict(file: UploadFile = File(...)):
     if len(predictions) < 5:
         return {"error": "Not enough valid face frames"}
 
-    # ==============================
-    # VOTING LOGIC (ROBUST)
-    # ==============================
-
-    fake_votes = sum(1 for p in predictions if p > 0.5)
+    # Voting
+    fake_votes = sum(1 for p in predictions if p > 0.55)
     real_votes = len(predictions) - fake_votes
 
-    confidence = fake_votes / len(predictions)
+    confidence = max(fake_votes, real_votes) / len(predictions)
 
     return {
         "fake_votes": fake_votes,

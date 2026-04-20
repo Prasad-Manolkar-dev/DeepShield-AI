@@ -36,23 +36,34 @@ full_dataset = ImageFolder(train_path, transform=transform)
 print("Total images:", len(full_dataset))
 print("Classes:", full_dataset.classes)
 
-# Get indices per class
-class_indices = {0: [], 1: []}
+# Get indices per class (FASTER version)
+real_indices = []
+fake_indices = []
 
-for idx, (_, label) in enumerate(full_dataset):
-    class_indices[label].append(idx)
+for idx, (path, label) in enumerate(full_dataset.samples):
+    if label == 0:
+        fake_indices.append(idx)
+    else:
+        real_indices.append(idx)
 
-# Equal sampling
-samples_per_class = subset_size // 2
+print("Fake count:", len(fake_indices))
+print("Real count:", len(real_indices))
 
-balanced_indices = random.sample(class_indices[0], samples_per_class) + \
-                   random.sample(class_indices[1], samples_per_class)
+# Find smallest class
+min_class_size = min(len(fake_indices), len(real_indices))
+
+# Safe sampling size
+samples_per_class = min(subset_size // 2, min_class_size)
+
+print("Using per class:", samples_per_class)
+
+# Balanced sample
+balanced_indices = random.sample(fake_indices, samples_per_class) + \
+                   random.sample(real_indices, samples_per_class)
 
 random.shuffle(balanced_indices)
 
 dataset = Subset(full_dataset, balanced_indices)
-
-
 print("Subset size:", len(dataset))
 
 loader = DataLoader(dataset, batch_size=16, shuffle=True)

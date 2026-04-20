@@ -36,8 +36,22 @@ full_dataset = ImageFolder(train_path, transform=transform)
 print("Total images:", len(full_dataset))
 print("Classes:", full_dataset.classes)
 
-subset_indices = random.sample(range(len(full_dataset)), subset_size)
-dataset = Subset(full_dataset, subset_indices)
+# Get indices per class
+class_indices = {0: [], 1: []}
+
+for idx, (_, label) in enumerate(full_dataset):
+    class_indices[label].append(idx)
+
+# Equal sampling
+samples_per_class = subset_size // 2
+
+balanced_indices = random.sample(class_indices[0], samples_per_class) + \
+                   random.sample(class_indices[1], samples_per_class)
+
+random.shuffle(balanced_indices)
+
+dataset = Subset(full_dataset, balanced_indices)
+
 
 print("Subset size:", len(dataset))
 
@@ -71,8 +85,7 @@ for param in model.fc.parameters():
 # ==============================
 
 criterion = nn.BCELoss()
-optimizer = optim.Adam(model.fc.parameters(), lr=0.00005)
-
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 # ==============================
 # TRAINING LOOP
 # ==============================

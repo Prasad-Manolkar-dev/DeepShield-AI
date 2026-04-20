@@ -107,6 +107,7 @@ async def predict(file: UploadFile = File(...)):
                     output = model(face)
 
                 pred = output.item()
+                print("Prediction:", pred)
 
                 # Ignore weak predictions
                 if 0.4 < pred < 0.6:

@@ -85,19 +85,19 @@ optimizer = optim.Adam(model.parameters(), lr=0.0001)
 # TRAINING
 # ==============================
 
+from tqdm import tqdm
+
 for epoch in range(epochs):
     total_loss = 0
 
-    print(f"\n🚀 Starting Epoch {epoch+1}/{epochs}")
+    print(f"\n🚀 Epoch {epoch+1}/{epochs}")
 
-    for i, (images, labels) in enumerate(loader):
+    for images, labels in tqdm(loader):
 
         labels = labels.float().unsqueeze(1)
 
         optimizer.zero_grad()
-
         outputs = model(images)
-
         loss = criterion(outputs, labels)
 
         loss.backward()
@@ -105,13 +105,7 @@ for epoch in range(epochs):
 
         total_loss += loss.item()
 
-        # 🔥 PRINT EVERY 20 BATCHES
-        if i % 20 == 0:
-            print(f"Epoch {epoch+1} | Batch {i}/{len(loader)} | Loss: {loss.item():.4f}")
-
-    avg_loss = total_loss / len(loader)
-
-    print(f"✅ Epoch {epoch+1} Completed | Avg Loss: {avg_loss:.4f}")
+    print(f"✅ Avg Loss: {total_loss / len(loader):.4f}")
 # ==============================
 # SAVE
 # ==============================

@@ -6,11 +6,18 @@ from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import ImageFolder
 import random
 
+import time
+start_time = time.time()
+
+print("\n==============================")
+print(" DeepFake Model Training Started")
+print("==============================\n")
+
 # ==============================
 # SETTINGS
 # ==============================
 
-train_path = "dataset/Train"   # 🔥 FULL FRAMES (IMPORTANT)
+train_path = "dataset/Train"   #  FULL FRAMES (IMPORTANT)
 subset_size = 10000
 epochs = 8
 random.seed(42)
@@ -22,7 +29,7 @@ random.seed(42)
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.RandomHorizontalFlip(),
-    transforms.RandomGrayscale(p=0.2),  # 🔥 helps detect fake tricks
+    transforms.RandomGrayscale(p=0.2),  #  helps detect fake tricks
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225])
@@ -72,13 +79,13 @@ for param in model.parameters():
 for param in model.layer4.parameters():
     param.requires_grad = True
 
-model.fc = nn.Linear(512, 1)  # ❌ NO SIGMOID
+model.fc = nn.Linear(512, 1)  #  NO SIGMOID
 
 # ==============================
 # TRAINING SETUP
 # ==============================
 
-criterion = nn.BCEWithLogitsLoss()  # 🔥 KEY CHANGE
+criterion = nn.BCEWithLogitsLoss()  #  KEY CHANGE
 optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 # ==============================
@@ -90,7 +97,7 @@ from tqdm import tqdm
 for epoch in range(epochs):
     total_loss = 0
 
-    print(f"\n🚀 Epoch {epoch+1}/{epochs}")
+    print(f"\n Epoch {epoch+1}/{epochs}")
 
     for images, labels in tqdm(loader):
 
@@ -105,10 +112,17 @@ for epoch in range(epochs):
 
         total_loss += loss.item()
 
-    print(f"✅ Avg Loss: {total_loss / len(loader):.4f}")
+    print(f" Avg Loss: {total_loss / len(loader):.4f}")
 # ==============================
 # SAVE
 # ==============================
 
 torch.save(model.state_dict(), "model.pth")
-print("✅ Model saved")
+print(" Model saved")
+
+end_time = time.time()
+
+print("\n==============================")
+print(" Training Completed")
+print(f" Total Time: {(end_time - start_time)/60:.2f} minutes")
+print("==============================\n")

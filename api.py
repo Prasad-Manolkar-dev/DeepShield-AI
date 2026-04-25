@@ -80,7 +80,7 @@ async def predict(file: UploadFile = File(...)):
     if len(predictions) == 0:
         return {"error": "No frames processed"}
 
-    fake_votes = sum(1 for p in predictions if p > 0.5)
+    fake_votes = sum(1 for p in predictions if p < 0.5)
     real_votes = len(predictions) - fake_votes
 
     confidence = max(fake_votes, real_votes) / len(predictions)

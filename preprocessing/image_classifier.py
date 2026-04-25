@@ -17,7 +17,7 @@ print("==============================\n")
 # SETTINGS
 # ==============================
 
-train_path = "../dataset/Train"   #  FULL FRAMES (IMPORTANT)
+train_path = r"C:\Users\Prasad\Desktop\DeepShield-AI\dataset\train"  #  FULL FRAMES (IMPORTANT)
 subset_size = 10000
 epochs = 8
 random.seed(42)

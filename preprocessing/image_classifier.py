@@ -5,19 +5,24 @@ from torchvision import models, transforms
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import ImageFolder
 import random
-
+from tqdm import tqdm
 import time
+
+# ==============================
+# START
+# ==============================
+
 start_time = time.time()
 
 print("\n==============================")
-print(" DeepFake Model Training Started")
+print("🚀 DeepFake Model Training Started")
 print("==============================\n")
 
 # ==============================
 # SETTINGS
 # ==============================
 
-train_path = r"C:\Users\Prasad\Desktop\DeepShield-AI\dataset\train"  #  FULL FRAMES (IMPORTANT)
+train_path = r"C:\Users\Prasad\Desktop\DeepShield-AI\dataset\train"
 subset_size = 10000
 epochs = 8
 random.seed(42)
@@ -29,7 +34,7 @@ random.seed(42)
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.RandomHorizontalFlip(),
-    transforms.RandomGrayscale(p=0.2),  #  helps detect fake tricks
+    transforms.RandomGrayscale(p=0.2),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225])
@@ -44,7 +49,6 @@ full_dataset = ImageFolder(train_path, transform=transform)
 print("Total images:", len(full_dataset))
 print("Classes:", full_dataset.classes)
 
-# Balanced sampling
 real_indices = []
 fake_indices = []
 
@@ -63,7 +67,6 @@ balanced_indices = random.sample(fake_indices, samples_per_class) + \
 random.shuffle(balanced_indices)
 
 dataset = Subset(full_dataset, balanced_indices)
-
 loader = DataLoader(dataset, batch_size=16, shuffle=True)
 
 # ==============================
@@ -72,35 +75,26 @@ loader = DataLoader(dataset, batch_size=16, shuffle=True)
 
 model = models.resnet18(pretrained=True)
 
-# Unfreeze last layers
 for param in model.parameters():
     param.requires_grad = False
 
 for param in model.layer4.parameters():
     param.requires_grad = True
 
-model.fc = nn.Linear(512, 1)  #  NO SIGMOID
-
-# ==============================
-# TRAINING SETUP
-# ==============================
-
-criterion = nn.BCEWithLogitsLoss()  #  KEY CHANGE
-optimizer = optim.Adam(model.parameters(), lr=0.0001)
+model.fc = nn.Linear(512, 1)
 
 # ==============================
 # TRAINING
 # ==============================
 
-from tqdm import tqdm
+criterion = nn.BCEWithLogitsLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 for epoch in range(epochs):
     total_loss = 0
-
-    print(f"\n Epoch {epoch+1}/{epochs}")
+    print(f"\n🔥 Epoch {epoch+1}/{epochs}")
 
     for images, labels in tqdm(loader):
-
         labels = labels.float().unsqueeze(1)
 
         optimizer.zero_grad()
@@ -112,17 +106,17 @@ for epoch in range(epochs):
 
         total_loss += loss.item()
 
-    print(f" Avg Loss: {total_loss / len(loader):.4f}")
+    print(f"✅ Avg Loss: {total_loss / len(loader):.4f}")
+
 # ==============================
 # SAVE
 # ==============================
 
 torch.save(model.state_dict(), "model.pth")
-print(" Model saved")
 
 end_time = time.time()
 
 print("\n==============================")
-print(" Training Completed")
-print(f" Total Time: {(end_time - start_time)/60:.2f} minutes")
+print("✅ Training Completed")
+print(f"⏱ Total Time: {(end_time - start_time)/60:.2f} minutes")
 print("==============================\n")

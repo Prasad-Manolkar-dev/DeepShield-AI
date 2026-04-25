@@ -8,7 +8,7 @@ import numpy as np
 app = FastAPI()
 
 # ==============================
-# MODEL
+# LOAD MODEL
 # ==============================
 
 model = models.resnet18(pretrained=False)
@@ -20,7 +20,7 @@ model.eval()
 print("✅ Model loaded")
 
 # ==============================
-# TRANSFORM
+# TRANSFORM (MUST MATCH TRAINING)
 # ==============================
 
 transform = transforms.Compose([
@@ -32,7 +32,7 @@ transform = transforms.Compose([
 ])
 
 # ==============================
-# API
+# PREDICTION API
 # ==============================
 
 @app.post("/predict/")
@@ -48,7 +48,7 @@ async def predict(file: UploadFile = File(...)):
     predictions = []
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_indices = set(np.linspace(0, total_frames - 1, 25, dtype=int))
+    frame_indices = set(np.linspace(0, total_frames - 1, 30, dtype=int))
 
     current = 0
 
@@ -61,6 +61,7 @@ async def predict(file: UploadFile = File(...)):
             current += 1
             continue
 
+        # 🔥 FIX: BGR → RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         frame = transform(frame).unsqueeze(0)
@@ -71,23 +72,42 @@ async def predict(file: UploadFile = File(...)):
 
         print("Prediction:", prob)
 
+        # 🔥 Ignore weak predictions
+        if 0.4 < prob < 0.6:
+            current += 1
+            continue
+
         predictions.append(prob)
 
         current += 1
 
     cap.release()
 
+    # ==============================
+    # SAFETY CHECK
+    # ==============================
+
     if len(predictions) == 0:
-        return {"error": "No frames processed"}
+        return {"error": "No confident frames detected"}
 
-    fake_votes = sum(1 for p in predictions if p < 0.5)
-    real_votes = len(predictions) - fake_votes
+    # ==============================
+    # CALIBRATED DECISION (FINAL FIX)
+    # ==============================
 
-    confidence = max(fake_votes, real_votes) / len(predictions)
+    avg_prob = sum(predictions) / len(predictions)
+
+    print("Average probability:", avg_prob)
+
+    # 🔥 IMPORTANT: calibrated threshold
+    threshold = 0.97
+
+    result = "REAL" if avg_prob > threshold else "FAKE"
+
+    confidence = abs(avg_prob - threshold)
 
     return {
-        "fake_votes": fake_votes,
-        "real_votes": real_votes,
+        "average_probability": avg_prob,
+        "threshold": threshold,
         "confidence": confidence,
-        "result": "FAKE" if fake_votes > real_votes else "REAL"
+        "result": result
     }

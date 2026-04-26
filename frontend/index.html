@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DEEPSHIELD-AI</title>
+    <link rel="stylesheet" href="deepshield_style.css">
+</head>
+<body>
+
+<div id="threeContainer"></div>
+
+<div class="container">
+
+    <h1 class="title">DEEPSHIELD-AI: DEEPFAKE VIDEO DETECTION SYSTEM</h1>
+
+    <p class="desc">Upload your image or video to analyze authenticity</p>
+
+    <div class="upload-box">
+        <input type="file" id="fileInput" accept="image/*,video/*">
+        <button onclick="uploadFile()">Analyze</button>
+    </div>
+
+    <div id="previewContainer"></div>
+
+    <div id="analysisSection" class="hidden">
+        <div class="chart">
+            <div class="bar" id="bar"></div>
+            <span id="value1">0%</span>
+        </div>
+
+        <div id="resultText"></div>
+    </div>
+
+</div>
+
+<div class="footer">
+    <hr>
+    <p>Developed by PRASAD MANOLKAR</p>
+    <a href="#">GitHub</a> |
+    <a href="#">LinkedIn</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

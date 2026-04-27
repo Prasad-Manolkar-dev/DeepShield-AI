@@ -1,5 +1,5 @@
 // =======================
-// UPLOAD + PREDICTION
+// UPLOAD + ANALYSIS
 // =======================
 
 async function uploadFile() {
@@ -78,13 +78,12 @@ async function uploadFile() {
             result.innerText = fakeScore + "% FAKE";
         }
 
-        startTransition();
-
     } catch (err) {
         clearInterval(progressInterval);
-        alert("Error connecting to backend");
+        alert("Backend error");
     }
 }
+
 
 // =======================
 // THREE JS SETUP
@@ -92,16 +91,10 @@ async function uploadFile() {
 
 const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-);
-
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
 camera.position.z = 4;
 
-const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+const renderer = new THREE.WebGLRenderer({ alpha:true, antialias:true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 document.getElementById("threeContainer").appendChild(renderer.domElement);
@@ -109,118 +102,103 @@ document.getElementById("threeContainer").appendChild(renderer.domElement);
 
 // LIGHT
 const light = new THREE.DirectionalLight(0xffffff, 1.2);
-light.position.set(2, 2, 5);
+light.position.set(2,2,5);
 scene.add(light);
 
 
 // =======================
-// MODEL
+// MODELS (LOW + HIGH)
 // =======================
 
 let wireframeModel, lowPolyModel, solidModel;
 
 const loader = new THREE.GLTFLoader();
 
-loader.load("model/face.glb", function (gltf) {
+// HIGH (REAL)
+loader.load("model/face_high.glb", (gltf) => {
 
-    const base = gltf.scene;
+    solidModel = gltf.scene;
 
-    // 🔥 SIMPLE STABLE ORIENTATION (DO NOT CHANGE)
-    base.rotation.y = Math.PI;
+    solidModel.rotation.y = Math.PI;
+    solidModel.scale.set(1.2,1.2,1.2);
+    solidModel.position.set(0,-0.5,0);
 
-    base.scale.set(1.2, 1.2, 1.2);
-    base.position.set(0, -0.5, 0);
+    solidModel.traverse((c)=>{
+        if(c.isMesh){
+            c.material = c.material.clone();
+            c.material.transparent = true;
+            c.material.opacity = 0;
+        }
+    });
 
+    scene.add(solidModel);
+});
 
-    // =========================
-    // CLONES
-    // =========================
-    wireframeModel = base.clone();
-    lowPolyModel = base.clone();
-    solidModel = base.clone();
+// LOW
+loader.load("model/face_low.glb", (gltf) => {
 
+    lowPolyModel = gltf.scene;
 
-    // =========================
-    // WIREFRAME
-    // =========================
-    wireframeModel.traverse((child) => {
-        if (child.isMesh) {
-            child.material = new THREE.MeshBasicMaterial({
-                color: 0x6EC1FF,
-                wireframe: true
+    lowPolyModel.rotation.y = Math.PI;
+    lowPolyModel.scale.set(1.2,1.2,1.2);
+    lowPolyModel.position.set(0,-0.5,0);
+
+    lowPolyModel.traverse((c)=>{
+        if(c.isMesh){
+            c.material = new THREE.MeshStandardMaterial({
+                color:0x4aa3ff,
+                flatShading:true,
+                transparent:true,
+                opacity:0
             });
         }
     });
 
+    scene.add(lowPolyModel);
 
-    // =========================
-    // LOW POLY
-    // =========================
-    lowPolyModel.traverse((child) => {
-        if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-                color: 0x6EC1FF,
-                flatShading: true,
-                transparent: true,
-                opacity: 0
+    // wireframe
+    wireframeModel = lowPolyModel.clone();
+
+    wireframeModel.traverse((c)=>{
+        if(c.isMesh){
+            c.material = new THREE.MeshBasicMaterial({
+                color:0x6EC1FF,
+                wireframe:true
             });
         }
     });
-
-
-    // =========================
-    // SOLID (FIXED TEXTURE)
-    // =========================
-    solidModel.traverse((child) => {
-        if (child.isMesh) {
-
-            // 🔥 KEEP ORIGINAL TEXTURE
-            const originalMaterial = child.material;
-
-            child.material = originalMaterial.clone();
-
-            child.material.transparent = true;
-            child.material.opacity = 0;
-        }
-    });
-
 
     scene.add(wireframeModel);
-    scene.add(lowPolyModel);
-    scene.add(solidModel);
 
-    startAutoCycle();
+    startCycle();
 });
 
 
 // =======================
-// TRANSITION SYSTEM
+// TRANSITION
 // =======================
 
-function startAutoCycle() {
+function startCycle(){
 
-    function runCycle() {
+    function run(){
 
-        setOpacity(wireframeModel, 1);
-        setOpacity(lowPolyModel, 0);
-        setOpacity(solidModel, 0);
+        setOpacity(wireframeModel,1);
+        setOpacity(lowPolyModel,0);
+        setOpacity(solidModel,0);
 
-        // 0–4s → wireframe
-        setTimeout(() => {
-            fade(wireframeModel, 1, 0);
-            fade(lowPolyModel, 0, 1);
-        }, 4000);
+        setTimeout(()=>{
+            fade(wireframeModel,1,0);
+            fade(lowPolyModel,0,1);
+        },4000);
 
-        // 4–8s → low poly
-        setTimeout(() => {
-            fade(lowPolyModel, 1, 0);
-            fade(solidModel, 0, 1);
-        }, 8000);
-
+        setTimeout(()=>{
+            fade(lowPolyModel,1,0);
+            fade(solidModel,0,1);
+        },8000);
     }
 
-    runCycle();
-    setInterval(runCycle, 12000);
+    run();
+    setInterval(run,12000);
 }
 
 
@@ -228,34 +206,49 @@ function startAutoCycle() {
 // HELPERS
 // =======================
 
-function setOpacity(model, value) {
-    model.traverse((child) => {
-        if (child.material) {
-            child.material.transparent = true;
-            child.material.opacity = value;
+function setOpacity(model,val){
+    model.traverse(c=>{
+        if(c.material){
+            c.material.transparent = true;
+            c.material.opacity = val;
         }
     });
 }
 
-function fade(model, from, to) {
+function fade(model,from,to){
 
-    let t = 0;
+    let t=0;
 
-    const interval = setInterval(() => {
+    const interval=setInterval(()=>{
 
-        t += 0.02;
+        t+=0.02;
+        if(t>=1) clearInterval(interval);
 
-        if (t >= 1) clearInterval(interval);
+        const v=from+(to-from)*t;
 
-        const value = from + (to - from) * t;
-
-        model.traverse((child) => {
-            if (child.material) {
-                child.material.opacity = value;
+        model.traverse(c=>{
+            if(c.material){
+                c.material.opacity=v;
             }
         });
 
-    }, 30);
+        if(Math.random()<0.1) glitch();
+
+    },30);
+}
+
+
+// =======================
+// GLITCH
+// =======================
+
+function glitch(){
+
+    const el = renderer.domElement;
+
+    el.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
+
+    setTimeout(()=>{ el.style.transform="none"; },80);
 }
 
 
@@ -263,16 +256,16 @@ function fade(model, from, to) {
 // ANIMATION
 // =======================
 
-function animate() {
+function animate(){
     requestAnimationFrame(animate);
 
-    if (wireframeModel) {
-        wireframeModel.rotation.y += 0.0015;
-        lowPolyModel.rotation.y += 0.0015;
-        solidModel.rotation.y += 0.0015;
+    if(wireframeModel){
+        wireframeModel.rotation.y+=0.0015;
+        lowPolyModel.rotation.y+=0.0015;
+        solidModel.rotation.y+=0.0015;
     }
 
-    renderer.render(scene, camera);
+    renderer.render(scene,camera);
 }
 
 animate();
@@ -282,21 +275,8 @@ animate();
 // RESPONSIVE
 // =======================
 
-window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+window.addEventListener("resize",()=>{
+    camera.aspect=window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth,window.innerHeight);
 });
-function glitchEffect() {
-
-    let intensity = Math.random() * 0.05;
-
-    renderer.domElement.style.transform = `
-        translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)
-        scale(${1 + intensity})
-    `;
-
-    setTimeout(() => {
-        renderer.domElement.style.transform = "none";
-    }, 80);
-}

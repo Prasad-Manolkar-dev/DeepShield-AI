@@ -287,3 +287,16 @@ window.addEventListener("resize", () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+function glitchEffect() {
+
+    let intensity = Math.random() * 0.05;
+
+    renderer.domElement.style.transform = `
+        translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)
+        scale(${1 + intensity})
+    `;
+
+    setTimeout(() => {
+        renderer.domElement.style.transform = "none";
+    }, 80);
+}

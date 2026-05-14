@@ -1,57 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <title>DEEPSHIELD-AI: DEEPFAKE VIDEO DETECTION SYSTEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- FONT -->
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
-
-    <!-- THREE JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
+    <title>DEEPSHIELD-AI</title>
 
     <link rel="stylesheet" href="deepshield_style.css">
+
 </head>
 
 <body>
 
-<h1>DEEPSHIELD-AI: DEEPFAKE VIDEO DETECTION SYSTEM</h1>
+    <!-- PARTICLES -->
+    <canvas id="bg"></canvas>
 
-<!-- 3D AREA -->
-<div id="threeContainer">
-    <div class="scanlines"></div>
-</div>
+    <!-- MAIN -->
+    <div class="main-container">
 
-<p class="tagline">Want to know the truth? Upload your media.</p>
+        <!-- HERO -->
+        <div class="hero">
 
-<!-- UPLOAD -->
-<input type="file" id="fileInput" accept="video/*,image/*">
-<button onclick="uploadFile()">Analyze</button>
+            <h1>
+                DEEPSHIELD-AI
+            </h1>
 
-<!-- PREVIEW -->
-<div id="previewContainer"></div>
+            <h2>
+                Deepfake Video & Image Detection System
+            </h2>
 
-<!-- ANALYSIS -->
-<div id="analysisSection" class="hidden">
-    <div class="chart">
-        <div class="bar" id="bar"></div>
-        <span id="value1">0%</span>
+            <p>
+                Upload media and analyze authenticity using AI-powered deepfake detection.
+            </p>
+
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="dashboard">
+
+            <!-- LEFT SIDE -->
+            <div class="left-panel">
+
+                <div class="projection-container">
+
+                    <!-- PROJECTOR -->
+                    <div class="projector-base"></div>
+
+                    <div class="light-beam"></div>
+
+                    <!-- FACE -->
+                    <img
+                        src="assets/ai-face.png"
+                        id="hologramFace">
+
+                </div>
+
+            </div>
+
+            <!-- RIGHT SIDE -->
+            <div class="analysis-card">
+
+                <!-- PREVIEW -->
+                <div class="preview-section">
+
+                    <video
+                        id="videoPreview"
+                        controls
+                        class="hidden">
+                    </video>
+
+                    <img
+                        id="imagePreview"
+                        class="hidden">
+
+                    <div id="placeholder">
+
+                        <div class="placeholder-box">
+                            AI Detection Preview
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- UPLOAD -->
+                <div class="upload-section">
+
+                    <label
+                        for="fileInput"
+                        class="custom-upload">
+
+                        Upload Image or Video
+
+                    </label>
+
+                    <input
+                        type="file"
+                        id="fileInput"
+                        accept="image/*,video/*"
+                        hidden>
+
+                    <div id="fileName">
+                        No file selected
+                    </div>
+
+                    <button onclick="uploadFile()">
+                        Analyze Media
+                    </button>
+
+                </div>
+
+                <!-- PROGRESS -->
+                <div class="progress-wrapper">
+
+                    <div class="chart">
+
+                        <div class="bar" id="bar"></div>
+
+                    </div>
+
+                    <div id="progressPercent">
+                        0%
+                    </div>
+
+                </div>
+
+                <!-- PROCESS -->
+                <div id="processingText">
+                    Waiting for upload...
+                </div>
+
+                <!-- RESULT -->
+                <div id="resultBox">
+
+                    <div class="result-block">
+
+                        <span class="result-label">
+                            Model Confidence
+                        </span>
+
+                        <div id="scoreText">
+                            0%
+                        </div>
+
+                    </div>
+
+                    <div class="result-block">
+
+                        <span class="result-label">
+                            Detection Result
+                        </span>
+
+                        <div id="finalResult">
+                            Waiting
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <h2 id="resultText"></h2>
-</div>
+    <!-- FOOTER -->
+    <footer>
 
-<hr>
+        <hr>
 
-<footer>
-    <p>Developed by PRASAD MANOLKAR</p>
-    <p>
-        GitHub | LinkedIn
-    </p>
-</footer>
+        <p>
+            Developed by PRASAD MANOLKAR
+        </p>
 
-<script src="script.js"></script>
+        <div class="footer-links">
+
+            <a href="https://github.com/Prasad-Manolkar-dev" target="_blank">
+                GitHub
+            </a>
+
+            <a href="https://linkedin.com/in/prasad-manolkar-11ap" target="_blank">
+                LinkedIn
+            </a>
+
+        </div>
+
+    </footer>
+
+    <script src="script.js"></script>
 
 </body>
+
 </html>
